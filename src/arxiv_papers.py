@@ -1,3 +1,5 @@
+import arxiv
+
 def main():
     print("Hello from arxiv-papers!")
 
