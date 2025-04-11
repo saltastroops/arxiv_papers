@@ -1,0 +1,18 @@
+# This is an example of a configuration file for this project.
+# Copy it to a file "config.toml" and update the content to suit your needs.
+
+[arxiv.astro-ph]
+authors = [
+    "Miller, Jane",
+    "Doe", "John"
+]
+
+[arxiv.cs]
+authors = [
+    "King, Eve"
+]
+
+[arxiv.q-bio]
+authors = [
+    "Smith, Peter"
+]
