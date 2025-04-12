@@ -2,7 +2,6 @@ import dataclasses
 from datetime import date, datetime
 
 import arxiv
-from openpyxl.workbook import Workbook
 
 
 @dataclasses.dataclass()
@@ -71,9 +70,9 @@ class ArXivPaper:
     """
 
     id: str
-    submitted: datetime
-    updated: datetime
-    authors: list[str]
+    submitted: str
+    updated: str
+    authors: str
     title: str
     abstract: str
     url: str
@@ -106,7 +105,7 @@ class Configuration:
     end: date
 
 
-def arxiv_papers(config: Configuration) -> Workbook:
+def arxiv_papers(config: Configuration) -> list[ArXivPaper]:
     """
     Query the arxiv for a list of papers.
 
@@ -123,7 +122,15 @@ def arxiv_papers(config: Configuration) -> Workbook:
     -------
     An Excel workbook with the papers found.
     """
-    pass
+    arxiv_ = ArXiv()
+    category_queries = config.category_queries
+    papers: list[ArXivPaper] = []
+    for category_query in category_queries:
+        category = category_query.category
+        for author in category_query.authors:
+            papers.extend(arxiv_.query_arxiv(category, author, config.start, config.end))
+
+    return papers
 
 
 class ArXiv:
@@ -164,4 +171,23 @@ class ArXiv:
         -------
         The query results.
         """
-        pass
+        au = author.family_name.lower().replace(" ", "_")
+        cat = category
+        submitted_date = "[" + start.strftime("%Y%m%d0000") + " TO " + end.strftime("%Y%m%d0000") + "]"
+        query = f"cat:{cat}.* AND au:{au} AND submittedDate:{submitted_date}"
+        search = arxiv.Search(query=query,  max_results=100, sort_by=arxiv.SortCriterion.LastUpdatedDate)
+        results = self._client.results(search)
+        return [self._parse_result(result) for result in results]
+
+
+    @staticmethod
+    def _parse_result(result: arxiv.Result) -> ArXivPaper:
+        return ArXivPaper(
+            id=result.entry_id.split("/")[-1],
+            submitted=result.published.strftime("%Y-%m-%d %H:%M"),
+            updated=result.updated.strftime("%Y-%m-%d %H:%M"),
+            authors="|".join([a.name for a in result.authors]),
+            title=result.title,
+            abstract=result.summary,
+            url=result.entry_id
+        )
