@@ -2,24 +2,55 @@ import csv
 import dataclasses
 import pathlib
 import tomllib
-from datetime import date
+from datetime import datetime
+from typing import Annotated
 
+import typer
 from arxiv_papers import arxiv_papers, Configuration, CategoryQuery, Author, ArXivPaper
 
 
-def main():
-    category_queries = _get_category_queries()
-    start = date(2025, 1, 28)
-    end = date(2025, 3, 20)
-    config = Configuration(category_queries=category_queries, start=start, end=end)
-    papers = arxiv_papers(config)
-    out = pathlib.Path("papers.csv")
-    _save(papers, out)
+def query(
+    start: Annotated[
+        datetime,
+        typer.Option(
+            ...,
+            help="The start date from which to query for (inclusive).",
+            prompt="Start date (inclusive)",
+            formats=["%Y-%m-%d"],
+        ),
+    ],
+    end: Annotated[
+        datetime,
+        typer.Option(
+            ...,
+            help="The end date until which to query for (exclusive).",
+            prompt="End date (exclusive)",
+            formats=["%Y-%m-%d"],
+        ),
+    ],
+):
+    try:
+        category_queries = _get_category_queries()
+        start_date = start.date()
+        end_date = end.date()
+        config = Configuration(
+            category_queries=category_queries, start=start_date, end=end_date
+        )
+        papers = arxiv_papers(config)
+        out = pathlib.Path(
+            f"SAAO_Papers_{start.strftime('%Y-%m-%d')}_to_{end.strftime('%Y-%m-%d')}.csv"
+        )
+        _save(sorted(papers), out)
+    except Exception as e:
+        typer.secho(str(e), fg=typer.colors.RED, bold=True)
+        raise typer.Exit(1)
 
 
 def _get_category_queries() -> list[CategoryQuery]:
     # Read in the configuration data
     config_file = pathlib.Path(__file__).parent.parent / "config.toml"
+    if not config_file.exists():
+        raise ValueError(f"Configuration file not found: {str(config_file.absolute())}")
     with open(config_file, "rb") as f:
         config_data = tomllib.load(f)
 
@@ -64,6 +95,10 @@ def _save(papers: list[ArXivPaper], out: pathlib.Path) -> None:
         csv_writer.writeheader()
         for paper in papers:
             csv_writer.writerow(dataclasses.asdict(paper))
+
+
+def main():
+    typer.run(query)
 
 
 if __name__ == "__main__":

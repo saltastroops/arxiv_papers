@@ -5,7 +5,15 @@ description = "Export arXiv paper metadata as a spreadsheet"
 requires-python = ">=3.11"
 dependencies = [
     "arxiv>=2.2",
+    "typer>=0.15.2",
 ]
+
+[project.scripts]
+arxiv = "main:main"
+
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
 
 [dependency-groups]
 dev = [
