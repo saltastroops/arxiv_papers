@@ -2,6 +2,7 @@ import dataclasses
 from datetime import date
 
 import arxiv
+import typer
 
 
 @dataclasses.dataclass(frozen=True)
@@ -164,7 +165,7 @@ class ArXiv:
         Parameters
         ----------
         category:
-            The arXiv subject category to query.
+            The arXiv subject category to query, such as astro-ph.
         author:
             The author to query for.
         start:
@@ -176,6 +177,7 @@ class ArXiv:
         -------
         The query results.
         """
+        typer.secho(f"Querying {category} for {author}...")
         au = author.family_name.lower().replace(" ", "_")
         cat = category
         submitted_date = (
