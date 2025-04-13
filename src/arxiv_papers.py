@@ -4,7 +4,7 @@ from datetime import date
 import arxiv
 
 
-@dataclasses.dataclass()
+@dataclasses.dataclass(frozen=True)
 class Author:
     """
     An author.
@@ -26,7 +26,7 @@ class Author:
         return f"{self.given_name} {self.family_name}"
 
 
-@dataclasses.dataclass()
+@dataclasses.dataclass(frozen=True)
 class CategoryQuery:
     """
     The parameters for a subject category query.
@@ -46,7 +46,7 @@ class CategoryQuery:
     authors: list[Author]
 
 
-@dataclasses.dataclass()
+@dataclasses.dataclass(frozen=True)
 class ArXivPaper:
     """
     Details about a paper on the arXiv.
@@ -78,7 +78,7 @@ class ArXivPaper:
     url: str
 
 
-@dataclasses.dataclass()
+@dataclasses.dataclass(frozen=True)
 class Configuration:
     """
     The configuration for the arXiv query.
@@ -105,7 +105,7 @@ class Configuration:
     end: date
 
 
-def arxiv_papers(config: Configuration) -> list[ArXivPaper]:
+def arxiv_papers(config: Configuration) -> set[ArXivPaper]:
     """
     Query the arxiv for a list of papers.
 
@@ -132,7 +132,7 @@ def arxiv_papers(config: Configuration) -> list[ArXivPaper]:
                 arxiv_.query_arxiv(category, author, config.start, config.end)
             )
 
-    return papers
+    return set(papers)
 
 
 class ArXiv:
@@ -151,7 +151,7 @@ class ArXiv:
 
     def query_arxiv(
         self, category: str, author: Author, start: date, end: date
-    ) -> list[ArXivPaper]:
+    ) -> set[ArXivPaper]:
         """
         Query the arXiv for a list of papers.
 
@@ -187,7 +187,7 @@ class ArXiv:
             query=query, max_results=100, sort_by=arxiv.SortCriterion.LastUpdatedDate
         )
         results = self._client.results(search)
-        return [self._parse_result(result) for result in results]
+        return set(self._parse_result(result) for result in results)
 
     @staticmethod
     def _parse_result(result: arxiv.Result) -> ArXivPaper:
