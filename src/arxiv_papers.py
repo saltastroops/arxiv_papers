@@ -1,5 +1,5 @@
 import dataclasses
-from datetime import date, datetime
+from datetime import date
 
 import arxiv
 
@@ -128,7 +128,9 @@ def arxiv_papers(config: Configuration) -> list[ArXivPaper]:
     for category_query in category_queries:
         category = category_query.category
         for author in category_query.authors:
-            papers.extend(arxiv_.query_arxiv(category, author, config.start, config.end))
+            papers.extend(
+                arxiv_.query_arxiv(category, author, config.start, config.end)
+            )
 
     return papers
 
@@ -173,12 +175,19 @@ class ArXiv:
         """
         au = author.family_name.lower().replace(" ", "_")
         cat = category
-        submitted_date = "[" + start.strftime("%Y%m%d0000") + " TO " + end.strftime("%Y%m%d0000") + "]"
+        submitted_date = (
+            "["
+            + start.strftime("%Y%m%d0000")
+            + " TO "
+            + end.strftime("%Y%m%d0000")
+            + "]"
+        )
         query = f"cat:{cat}.* AND au:{au} AND submittedDate:{submitted_date}"
-        search = arxiv.Search(query=query,  max_results=100, sort_by=arxiv.SortCriterion.LastUpdatedDate)
+        search = arxiv.Search(
+            query=query, max_results=100, sort_by=arxiv.SortCriterion.LastUpdatedDate
+        )
         results = self._client.results(search)
         return [self._parse_result(result) for result in results]
-
 
     @staticmethod
     def _parse_result(result: arxiv.Result) -> ArXivPaper:
@@ -189,5 +198,5 @@ class ArXiv:
             authors="|".join([a.name for a in result.authors]),
             title=result.title,
             abstract=result.summary,
-            url=result.entry_id
+            url=result.entry_id,
         )
