@@ -6,18 +6,18 @@ import typer
 
 
 @dataclasses.dataclass(frozen=True)
-class Author:
+class Person:
     """
-    An author.
+    A person.
 
-    Note that arXiv queries only use an author's family name (surname).
+    Note that arXiv queries only use a person's family name (surname).
 
     Parameters
     ----------
     given_name:
-        The author's given name (first name).
+        The person's given name (first name).
     family_name:
-        The author's family name (surname).
+        The person's family name (surname).
     """
 
     given_name: str
@@ -44,7 +44,7 @@ class CategoryQuery:
     """
 
     category: str
-    authors: list[Author]
+    authors: list[Person]
 
 
 @dataclasses.dataclass(frozen=True)
@@ -62,6 +62,9 @@ class ArXivPaper:
         The date and time when the paper was last updated.
     authors:
         The authors.
+    authors_of_interest:
+        The authors who might be of interest as their family names matches that of one
+        of the persons queried for the arXiv category.
     title:
         The title of the paper.
     abstract:
@@ -73,6 +76,7 @@ class ArXivPaper:
     id: str
     submitted: str
     updated: str
+    authors_of_interest: str
     authors: str
     title: str
     abstract: str
@@ -131,9 +135,10 @@ def arxiv_papers(config: Configuration) -> set[ArXivPaper]:
     papers: list[ArXivPaper] = []
     for category_query in category_queries:
         category = category_query.category
+        all_authors = category_query.authors
         for author in category_query.authors:
             papers.extend(
-                arxiv_.query_arxiv(category, author, config.start, config.end)
+                arxiv_.query_arxiv(category, author, config.start, config.end, all_authors)
             )
 
     return set(papers)
@@ -154,7 +159,7 @@ class ArXiv:
             ArXiv._client = arxiv.Client()
 
     def query_arxiv(
-        self, category: str, author: Author, start: date, end: date
+        self, category: str, author: Person, start: date, end: date, all_authors: list[Person]
     ) -> set[ArXivPaper]:
         """
         Query the arXiv for a list of papers.
@@ -172,6 +177,8 @@ class ArXiv:
             The start date from which to query, inclusive.
         end:
             The end date until which to query, exclusive.
+        all_authors:
+            All the authors who have been or will be queried for the category.
 
         Returns
         -------
@@ -192,15 +199,25 @@ class ArXiv:
             query=query, max_results=100, sort_by=arxiv.SortCriterion.LastUpdatedDate
         )
         results = self._client.results(search)
-        return set(self._parse_result(result) for result in results)
+        return set(self._parse_result(result, all_authors) for result in results)
 
     @staticmethod
-    def _parse_result(result: arxiv.Result) -> ArXivPaper:
+    def _parse_result(result: arxiv.Result, all_queried_persons: list[Person]) -> ArXivPaper:
+        # Find the paper authors whose name contains any of the queried family names.
+        authors = [a.name for a in result.authors]
+        authors_of_interest = []
+        for author in authors:
+            for person in all_queried_persons:
+                if person.family_name.lower() in author.lower():
+                    authors_of_interest.append(author)
+                    break
+
         return ArXivPaper(
             id=result.entry_id.split("/")[-1],
             submitted=result.published.strftime("%Y-%m-%d %H:%M"),
             updated=result.updated.strftime("%Y-%m-%d %H:%M"),
-            authors="|".join([a.name for a in result.authors]),
+            authors_of_interest="|".join(authors_of_interest),
+            authors="|".join(authors),
             title=result.title,
             abstract=result.summary,
             url=result.entry_id,

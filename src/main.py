@@ -6,7 +6,7 @@ from datetime import datetime
 from typing import Annotated
 
 import typer
-from arxiv_papers import arxiv_papers, Configuration, CategoryQuery, Author, ArXivPaper
+from arxiv_papers import arxiv_papers, Configuration, CategoryQuery, Person, ArXivPaper
 
 
 def query(
@@ -67,7 +67,7 @@ def _get_category_queries() -> list[CategoryQuery]:
     return category_queries
 
 
-def _parse_author(author: str) -> Author:
+def _parse_author(author: str) -> Person:
     author_parts = author.split(",")
     if len(author_parts) != 2:
         message = (
@@ -75,7 +75,7 @@ def _parse_author(author: str) -> Author:
             "Neither the given name nor the family name may contain a comma."
         )
         raise ValueError(message)
-    return Author(
+    return Person(
         given_name=author_parts[1].strip(), family_name=author_parts[0].strip()
     )
 
@@ -86,6 +86,7 @@ def _save(papers: list[ArXivPaper], out: pathlib.Path) -> None:
             "id",
             "submitted",
             "updated",
+            "authors_of_interest",
             "authors",
             "title",
             "abstract",
