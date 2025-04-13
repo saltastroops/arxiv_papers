@@ -80,6 +80,7 @@ class ArXivPaper:
     def __lt__(self, other: "ArXivPaper") -> bool:
         return self.id < other.id
 
+
 @dataclasses.dataclass(frozen=True)
 class Configuration:
     """
